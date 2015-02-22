@@ -8,7 +8,7 @@ The purpose of this report is to explain how the model building is done in R to 
 # Variable selection and Cross Validation  
 The training data given is loaded into R. The first six columns are removed from the dataframe as they don't contribute to the model building. There are several variables with more than 95% of missing data. All these variables are also removed from the dataset. It is then  split into two train and test sections using createDataPartition. 
 
-```{r}
+```{r, message=FALSE}
 activity <- read.csv("tr.csv",header=T,na.strings=c("NA",""))
 activity <- activity[,-c(1:6)]
 activity <- activity[,colSums(is.na(activity))<1000]
@@ -19,9 +19,8 @@ training <- activity[inTrain,]
 testing <- activity[-inTrain,]
 ```
 
-The next step is to check for correlation between variables. Some selected features are plotted in a scatter plot against "classe". Also few histograms are plotted for continuous variables to see if pre processing is necessary. 
+The next step is to check for correlation between variables. Histograms are plotted for some continuous variables to see if pre processing is necessary. 
 ```{r}
-featurePlot(x=training[,c("total_accel_belt","total_accel_arm", "total_accel_dumbbell", "total_accel_forearm")], y = training$classe, plot = "pairs")
 par(mfrow=c(2,2))
 hist(training$yaw_dumbbell)
 hist(training$pitch_arm )
