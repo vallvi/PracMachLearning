@@ -1,0 +1,46 @@
+---
+title: "Prediction Assignment - Model Building using Caret Package in R"
+output: html_document
+---
+# Introduction  
+The purpose of this report is to explain how the model building is done in R to predict the manner of the exercise for the given test cases. I developed my model using the Caret package and Random Forest Package in R.  
+
+# Variable selection and Cross Validation  
+The training data given is loaded into R. The first six columns are removed from the dataframe as they don't contribute to the model building. There are several variables with more than 95% of missing data. All these variables are also removed from the dataset. It is then  split into two train and test sections using createDataPartition. 
+
+```{r}
+activity <- read.csv("tr.csv",header=T,na.strings=c("NA",""))
+activity <- activity[,-c(1:6)]
+activity <- activity[,colSums(is.na(activity))<1000]
+library(caret)
+library(randomForest)
+inTrain <- createDataPartition(y=activity$classe,p=0.75,list=F)
+training <- activity[inTrain,]
+testing <- activity[-inTrain,]
+```
+
+The next step is to check for correlation between variables. Some selected features are plotted in a scatter plot against "classe". Also few histograms are plotted for continuous variables to see if pre processing is necessary. 
+```{r}
+featurePlot(x=training[,c("total_accel_belt","total_accel_arm", "total_accel_dumbbell", "total_accel_forearm")], y = training$classe, plot = "pairs")
+par(mfrow=c(2,2))
+hist(training$yaw_dumbbell)
+hist(training$pitch_arm )
+hist(training$roll_belt)
+hist(training$pitch_forearm)
+nsv <- nearZeroVar(training,saveMetrics=TRUE)
+```
+# Pre Processing and Final Model  
+There are no variables with near zero variance. But the histograms show that some variables need standardizing. Hence pre processing is done on the variables. Then a model is fitted using the randomForest package and prediction is done on test dataset. 
+```{r}
+preProc <- preProcess(training[,-54],method="pca")
+trainPC <- predict(preProc,training[,-54])
+modelFit <- randomForest(training$classe~.,data=trainPC)
+testPC <- predict(preProc,testing[,-54])
+confusionMatrix(testing$classe,predict(modelFit,testPC))$overall[1]
+```
+
+# Error Rate and Accuracy  
+
+The accuracy of this model on the test set is `r confusionMatrix(testing$classe,predict(modelFit,testPC))$overall[1]`. Therefore out of sample error rate can be calculated as `r (1 -  confusionMatrix(testing$classe,predict(modelFit,testPC))$overall[1])*100` %. The accuracy is pretty high to consider this as final model. 100% acuurate prediction is achieved using this model on the 20 test cases. 
+
+
