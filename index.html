@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Pracmachlearning : ">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Pracmachlearning</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/vallvi/PracMachLearning">View on GitHub</a>
+
+          <h1 id="project_title">Pracmachlearning</h1>
+          <h2 id="project_tagline"></h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/vallvi/PracMachLearning/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/vallvi/PracMachLearning/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <hr>
+
+<p>title: "Prediction Assignment - Model Building using Caret Package in R"</p>
+
+<h2>
+<a id="output-html_document" class="anchor" href="#output-html_document" aria-hidden="true"><span class="octicon octicon-link"></span></a>output: html_document</h2>
+
+<h1>
+<a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
+
+<p>The purpose of this report is to explain how the model building is done in R to predict the manner of the exercise for the given test cases. I developed my model using the Caret package and Random Forest Package in R.  </p>
+
+<h1>
+<a id="variable-selection-and-cross-validation" class="anchor" href="#variable-selection-and-cross-validation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Variable selection and Cross Validation</h1>
+
+<p>The training data given is loaded into R. The first six columns are removed from the dataframe as they don't contribute to the model building. There are several variables with more than 95% of missing data. All these variables are also removed from the dataset. It is then  split into two train and test sections using createDataPartition. </p>
+
+<pre lang="r,"><code>activity &lt;- read.csv("tr.csv",header=T,na.strings=c("NA",""))
+activity &lt;- activity[,-c(1:6)]
+activity &lt;- activity[,colSums(is.na(activity))&lt;1000]
+library(caret)
+library(randomForest)
+inTrain &lt;- createDataPartition(y=activity$classe,p=0.75,list=F)
+training &lt;- activity[inTrain,]
+testing &lt;- activity[-inTrain,]
+</code></pre>
+
+<p>The next step is to check for correlation between variables. Histograms are plotted for some continuous variables to see if pre processing is necessary. </p>
+
+<div class="highlight highlight-r"><pre>par(<span class="pl-v">mfrow</span><span class="pl-k">=</span>c(<span class="pl-c1">2</span>,<span class="pl-c1">2</span>))
+hist(<span class="pl-vo">training</span><span class="pl-k">$</span><span class="pl-vo">yaw_dumbbell</span>)
+hist(<span class="pl-vo">training</span><span class="pl-k">$</span><span class="pl-vo">pitch_arm</span> )
+hist(<span class="pl-vo">training</span><span class="pl-k">$</span><span class="pl-vo">roll_belt</span>)
+hist(<span class="pl-vo">training</span><span class="pl-k">$</span><span class="pl-vo">pitch_forearm</span>)
+<span class="pl-vo">nsv</span> <span class="pl-k">&lt;-</span> nearZeroVar(<span class="pl-vo">training</span>,<span class="pl-v">saveMetrics</span><span class="pl-k">=</span><span class="pl-c1">TRUE</span>)</pre></div>
+
+<h1>
+<a id="pre-processing-and-final-model" class="anchor" href="#pre-processing-and-final-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pre Processing and Final Model</h1>
+
+<p>There are no variables with near zero variance. But the histograms show that some variables need standardizing. Hence pre processing is done on the variables. Then a model is fitted using the randomForest package and prediction is done on test dataset. </p>
+
+<div class="highlight highlight-r"><pre><span class="pl-vo">preProc</span> <span class="pl-k">&lt;-</span> preProcess(<span class="pl-vo">training</span>[,<span class="pl-k">-</span><span class="pl-c1">54</span>],<span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s1"><span class="pl-pds">"</span>pca<span class="pl-pds">"</span></span>)
+<span class="pl-vo">trainPC</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-vo">preProc</span>,<span class="pl-vo">training</span>[,<span class="pl-k">-</span><span class="pl-c1">54</span>])
+<span class="pl-vo">modelFit</span> <span class="pl-k">&lt;-</span> randomForest(<span class="pl-vo">training</span><span class="pl-k">$</span><span class="pl-vo">classe</span><span class="pl-k">~</span>.,<span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-vo">trainPC</span>)
+<span class="pl-vo">testPC</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-vo">preProc</span>,<span class="pl-vo">testing</span>[,<span class="pl-k">-</span><span class="pl-c1">54</span>])
+confusionMatrix(<span class="pl-vo">testing</span><span class="pl-k">$</span><span class="pl-vo">classe</span>,predict(<span class="pl-vo">modelFit</span>,<span class="pl-vo">testPC</span>))<span class="pl-k">$</span><span class="pl-vo">overall</span>[<span class="pl-c1">1</span>]</pre></div>
+
+<h1>
+<a id="error-rate-and-accuracy" class="anchor" href="#error-rate-and-accuracy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error Rate and Accuracy</h1>
+
+<p>The accuracy of this model on the test set is <code>r confusionMatrix(testing$classe,predict(modelFit,testPC))$overall[1]</code>. Therefore out of sample error rate can be calculated as <code>r (1 -  confusionMatrix(testing$classe,predict(modelFit,testPC))$overall[1])*100</code> %. The accuracy is pretty high to consider this as final model. 100% acuurate prediction is achieved using this model on the 20 test cases. </p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Pracmachlearning maintained by <a href="https://github.com/vallvi">vallvi</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
